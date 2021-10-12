@@ -58,6 +58,7 @@ class Queue {
   int parallel;
   int _lastProcessId = 0;
   bool _isCancelled = false;
+  bool _isPerformingDelay = false;
 
   bool get isCancelled => _isCancelled;
   StreamController<int>? _remainingItemsController;
@@ -131,6 +132,7 @@ class Queue {
   /// When each item completes it will only fire up one othe process
   ///
   Future<void> _process() async {
+    if (_isPerformingDelay) return;
     if (activeItems.length < parallel) {
       _queueUpNext();
     }
@@ -152,7 +154,9 @@ class Queue {
       item.onComplete = () async {
         activeItems.remove(processId);
         if (delay != null) {
+          _isPerformingDelay = true;
           await Future.delayed(delay!);
+          _isPerformingDelay = false;
         }
         _updateRemainingItems();
         _queueUpNext();
